@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.Map;
@@ -65,8 +66,15 @@ public class KhutbahTranslationService {
             JsonNode node = mapper.readTree(res.getBody());
             log.info("Created realtime translation session for lang={}", targetLang);
             return mapper.convertValue(node, Map.class);
+        } catch (HttpClientErrorException e) {
+            log.error("OpenAI rejected the request: status={} body={}",
+                e.getStatusCode(), e.getResponseBodyAsString());
+            return Map.of(
+                "error", "OpenAI error " + e.getStatusCode(),
+                "details", e.getResponseBodyAsString()
+            );
         } catch (Exception e) {
-            log.error("Failed to create realtime session: {}", e.getMessage());
+            log.error("Failed to create realtime session: {}", e.getMessage(), e);
             return Map.of("error", e.getMessage());
         }
     }
