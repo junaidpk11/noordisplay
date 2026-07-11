@@ -4,11 +4,11 @@ const nextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: 'http://localhost:8080/api/:path*',
+        destination: 'http://backend:8080/api/:path*',
       },
       {
         source: '/ws/:path*',
-        destination: 'http://localhost:8080/ws/:path*',
+        destination: 'http://backend:8080/ws/:path*',
       },
     ];
   },
