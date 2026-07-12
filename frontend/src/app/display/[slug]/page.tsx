@@ -97,30 +97,39 @@ export default function DisplayPage({ params }: { params: { slug: string } }) {
   useEffect(() => {
     const load = () => {
       // Use XMLHttpRequest for maximum TV browser compatibility
-      // fetch() is blocked on some smart TV browsers; XHR works everywhere
       const urls = [
         'https://api.atlanticbridgelabs.com/api/display/' + slug,
         window.location.origin + '/api/display/' + slug,
       ];
+      console.log('[NoorDisplay] Starting XHR fetch for slug:', slug, '| URLs:', urls);
       let tried = 0;
       const tryUrl = (url: string) => {
+        console.log('[NoorDisplay] XHR trying:', url);
         const xhr = new XMLHttpRequest();
         xhr.open('GET', url, true);
         xhr.timeout = 8000;
         xhr.onload = () => {
+          console.log('[NoorDisplay] XHR response:', url, 'status:', xhr.status);
           if (xhr.status === 200) {
             try {
               const freshData = JSON.parse(xhr.responseText);
               if (freshData?.prayerTimes || freshData?.masjid) {
+                console.log('[NoorDisplay] Data loaded OK from:', url);
                 setData(freshData);
                 return;
+              } else {
+                console.warn('[NoorDisplay] Unexpected data from:', url, Object.keys(freshData));
               }
-            } catch (_) {}
+            } catch (e) {
+              console.error('[NoorDisplay] JSON parse error:', e);
+            }
           }
           tried++;
           if (tried < urls.length) tryUrl(urls[tried]);
+          else console.error('[NoorDisplay] All URLs failed — stuck on Loading');
         };
         xhr.onerror = () => {
+          console.error('[NoorDisplay] XHR error for:', url);
           tried++;
           if (tried < urls.length) tryUrl(urls[tried]);
         };
@@ -175,13 +184,16 @@ export default function DisplayPage({ params }: { params: { slug: string } }) {
       webSocketFactory: () => new (SockJS as any)(getWsUrl()),
       reconnectDelay: 5000,
       onConnect: () => {
+        console.log('[NoorDisplay] WebSocket connected to:', getWsUrl());
+        console.log('[NoorDisplay] Subscribing to khutbah-mode and scheduler topics');
         client.subscribe(`/topic/khutbah-mode/${slug}`, msg => {
           const data = JSON.parse(msg.body);
           if (data.active) {
             // Redirect all connected displays to the khutbah translation screen
+            console.log('[NoorDisplay] Khutbah mode ON — redirecting to khutbah page');
             router.push(`/display/${slug}/khutbah`);
           } else {
-            // Imam stopped — come back to normal display
+            console.log('[NoorDisplay] Khutbah mode OFF — staying on display page');
             setKhutbahMode(false);
           }
         });
@@ -197,6 +209,7 @@ export default function DisplayPage({ params }: { params: { slug: string } }) {
       webSocketFactory: () => new (SockJS as any)(getWsUrl()),
       reconnectDelay: 5000,
       onConnect: () => {
+        console.log('[NoorDisplay] Subscribed to scheduler topic');
         client.subscribe(`/topic/schedule/${slug}`, msg => {
           const payload = JSON.parse(msg.body);
           const active: any[] = payload.activeSlots || [];

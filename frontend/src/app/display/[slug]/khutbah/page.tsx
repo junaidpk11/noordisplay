@@ -82,6 +82,11 @@ function getWebSocketUrl(): string {
   const configured = process.env.NEXT_PUBLIC_WS_URL;
   if (configured) return configured;
 
+  if (typeof window !== 'undefined') {
+    const protocol = window.location.protocol === 'https:' ? 'https' : 'http';
+    return `${protocol}://${window.location.hostname}:8080/ws`;
+  }
+
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
   return apiUrl + '/ws';
 }
@@ -122,13 +127,17 @@ export default function KhutbahDisplay({ params }: { params: { slug: string } })
       heartbeatOutgoing: 10000,
       onConnect: () => {
         setConnected(true);
+        console.log('[KhutbahDisplay] WebSocket connected');
 
+        console.log('[KhutbahDisplay] Subscribing to khutbah and khutbah-mode topics');
         client.subscribe(`/topic/khutbah-mode/${slug}`, msg => {
           const data = JSON.parse(msg.body);
           const isActive = Boolean(data.active);
+          console.log('[KhutbahDisplay] khutbah-mode received:', data, 'isActive:', isActive);
           setActive(isActive);
 
           if (!isActive) {
+            console.log('[KhutbahDisplay] Mode OFF — redirecting to /display/' + slug);
             setCaptions([]);
             router.push(`/display/${slug}`);
           }
@@ -138,7 +147,9 @@ export default function KhutbahDisplay({ params }: { params: { slug: string } })
           let data: any;
           try {
             data = JSON.parse(msg.body);
+            console.log('[KhutbahDisplay] Caption received from /topic/khutbah:', JSON.stringify(data).slice(0, 100));
           } catch {
+            console.error('[KhutbahDisplay] Failed to parse caption message');
             return;
           }
 
@@ -174,7 +185,10 @@ export default function KhutbahDisplay({ params }: { params: { slug: string } })
           ]);
         });
       },
-      onDisconnect: () => setConnected(false),
+      onDisconnect: () => {
+        console.warn('[KhutbahDisplay] WebSocket disconnected');
+        setConnected(false);
+      },
       onStompError: () => setConnected(false),
       onWebSocketClose: () => setConnected(false),
     });
