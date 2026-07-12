@@ -166,13 +166,16 @@ export default function DisplayPage({ params }: { params: { slug: string } }) {
       webSocketFactory: () => new (SockJS as any)(getWsUrl()),
       reconnectDelay: 5000,
       onConnect: () => {
+        console.log('🔵 [khutbah-mode] Subscribing to topic:', `/topic/khutbah-mode/${slug}`);
         client.subscribe(`/topic/khutbah-mode/${slug}`, msg => {
+          console.log('🟢 [khutbah-mode] Message received, raw body:', msg.body);
           const data = JSON.parse(msg.body);
+          console.log('🟡 [khutbah-mode] Parsed data:', data);
           if (data.active) {
-            // Redirect all connected displays to the khutbah translation screen
+            console.log('🔴 [khutbah-mode] Redirecting to khutbah view...');
             router.push(`/display/${slug}/khutbah`);
           } else {
-            // Imam stopped — come back to normal display
+            console.log('⚪ [khutbah-mode] Setting khutbahMode false');
             setKhutbahMode(false);
           }
         });
