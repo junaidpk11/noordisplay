@@ -145,24 +145,11 @@ export default function DisplayPage({ params }: { params: { slug: string } }) {
     return () => { clearInterval(refreshId); clearTimeout(midnightId); };
   }, [slug]);
 
-  // Keep-alive — prevents LG webOS browser from sleeping/unloading the page
-  // Plays a silent audio ping and moves a hidden element every 30 seconds
+  // Keep-alive — prevents browser from unloading the page
   useEffect(() => {
     const keepAlive = setInterval(() => {
-      // Touch the DOM to signal activity to the browser
+      // Simple DOM touch — signals page is active without requiring user gesture
       document.title = document.title;
-      // Create and immediately discard a tiny audio context ping
-      try {
-        const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        gain.gain.value = 0; // silent
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.001);
-        setTimeout(() => ctx.close(), 100);
-      } catch (_) {}
     }, 30000);
     return () => clearInterval(keepAlive);
   }, []);
