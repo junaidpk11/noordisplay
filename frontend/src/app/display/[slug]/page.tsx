@@ -154,13 +154,31 @@ export default function DisplayPage({ params }: { params: { slug: string } }) {
     return () => { clearInterval(refreshId); clearTimeout(midnightId); };
   }, [slug]);
 
-  // Keep-alive — prevents browser from unloading the page
+  // Keep-alive — prevents LG webOS browser from sleeping the tab
+  // A looping silent video is the most reliable way to keep a browser tab active
   useEffect(() => {
+    // Create a 1x1 transparent video element that loops silently forever
+    const video = document.createElement('video');
+    video.src = 'data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAAAr1tZGF0AAACrgYF//+q3EXpvebZSLeWLNgg2SPu73gyNjQgLSBjb3JlIDE0MiByMjQ3OSBkZDc5YTYxIC0gSC4yNjQvTVBFRy00IEFWQQ==';
+    video.loop    = true;
+    video.muted   = true;
+    video.volume  = 0;
+    video.setAttribute('playsinline', '');
+    video.style.cssText = 'position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;top:-1px;left:-1px';
+    document.body.appendChild(video);
+    video.play().catch(() => {});
+
+    // Fallback DOM touch every 20 seconds
     const keepAlive = setInterval(() => {
-      // Simple DOM touch — signals page is active without requiring user gesture
       document.title = document.title;
-    }, 30000);
-    return () => clearInterval(keepAlive);
+      if (video.paused) video.play().catch(() => {});
+    }, 20000);
+
+    return () => {
+      clearInterval(keepAlive);
+      video.pause();
+      document.body.removeChild(video);
+    };
   }, []);
 
   // Weather — Open-Meteo, no API key needed
@@ -185,7 +203,6 @@ export default function DisplayPage({ params }: { params: { slug: string } }) {
       reconnectDelay: 5000,
       onConnect: () => {
         console.log('[NoorDisplay] WebSocket connected to:', getWsUrl());
-        console.log('[NoorDisplay] Subscribing to khutbah-mode and scheduler topics');
         client.subscribe(`/topic/khutbah-mode/${slug}`, msg => {
           const data = JSON.parse(msg.body);
           if (data.active) {
@@ -193,7 +210,7 @@ export default function DisplayPage({ params }: { params: { slug: string } }) {
             console.log('[NoorDisplay] Khutbah mode ON — redirecting to khutbah page');
             router.push(`/display/${slug}/khutbah`);
           } else {
-            console.log('[NoorDisplay] Khutbah mode OFF — staying on display page');
+            // Imam stopped — come back to normal display
             setKhutbahMode(false);
           }
         });
