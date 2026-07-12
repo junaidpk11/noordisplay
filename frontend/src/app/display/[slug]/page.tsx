@@ -145,6 +145,28 @@ export default function DisplayPage({ params }: { params: { slug: string } }) {
     return () => { clearInterval(refreshId); clearTimeout(midnightId); };
   }, [slug]);
 
+  // Keep-alive — prevents LG webOS browser from sleeping/unloading the page
+  // Plays a silent audio ping and moves a hidden element every 30 seconds
+  useEffect(() => {
+    const keepAlive = setInterval(() => {
+      // Touch the DOM to signal activity to the browser
+      document.title = document.title;
+      // Create and immediately discard a tiny audio context ping
+      try {
+        const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        gain.gain.value = 0; // silent
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.001);
+        setTimeout(() => ctx.close(), 100);
+      } catch (_) {}
+    }, 30000);
+    return () => clearInterval(keepAlive);
+  }, []);
+
   // Weather — Open-Meteo, no API key needed
   useEffect(() => {
     if (!data?.masjid) return;
@@ -166,16 +188,13 @@ export default function DisplayPage({ params }: { params: { slug: string } }) {
       webSocketFactory: () => new (SockJS as any)(getWsUrl()),
       reconnectDelay: 5000,
       onConnect: () => {
-        console.log('🔵 [khutbah-mode] Subscribing to topic:', `/topic/khutbah-mode/${slug}`);
         client.subscribe(`/topic/khutbah-mode/${slug}`, msg => {
-          console.log('🟢 [khutbah-mode] Message received, raw body:', msg.body);
           const data = JSON.parse(msg.body);
-          console.log('🟡 [khutbah-mode] Parsed data:', data);
           if (data.active) {
-            console.log('🔴 [khutbah-mode] Redirecting to khutbah view...');
+            // Redirect all connected displays to the khutbah translation screen
             router.push(`/display/${slug}/khutbah`);
           } else {
-            console.log('⚪ [khutbah-mode] Setting khutbahMode false');
+            // Imam stopped — come back to normal display
             setKhutbahMode(false);
           }
         });
