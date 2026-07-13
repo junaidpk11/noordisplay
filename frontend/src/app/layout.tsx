@@ -8,13 +8,12 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" style={{ height: '100%' }}>
+    <html lang="en">
       <head>
-        {/* Force TV browsers to render at correct scale — no zoom */}
-        <meta name="viewport" content="width=1920, initial-scale=1.0" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap" rel="stylesheet" />
       </head>
-      <body style={{ height: '100%', margin: 0, padding: 0, overflow: 'hidden' }}>
+      <body style={{ margin: 0, padding: 0 }}>
         {children}
       </body>
     </html>

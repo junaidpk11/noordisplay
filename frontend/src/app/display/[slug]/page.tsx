@@ -361,13 +361,13 @@ export default function DisplayPage({ params }: { params: { slug: string } }) {
           return (
             <div key={p.key} style={{padding:'5px 16px',paddingLeft:isActive?14:16,background:isActive?'#111827':'transparent',borderLeft:isActive?'2px solid #c9a84c':'2px solid transparent',transition:'background 0.5s'}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                <span style={{fontSize:12,fontWeight:500,color:isActive?'#f0ede6':'#6b7280'}}>
+                <span style={{fontSize:16,fontWeight:500,color:isActive?'#f0ede6':'#6b7280'}}>
                   {p.label}
-                  {isNext&&<span style={{fontSize:9,background:'#c9a84c18',color:'#c9a84c',padding:'1px 5px',borderRadius:3,marginLeft:5,fontWeight:500}}>next</span>}
+                  {isNext&&<span style={{fontSize:11,background:'#c9a84c18',color:'#c9a84c',padding:'2px 6px',borderRadius:3,marginLeft:5,fontWeight:500}}>next</span>}
                 </span>
-                <span style={{fontSize:12,fontWeight:500,color:isActive?'#c9a84c':'#6b7280',fontVariantNumeric:'tabular-nums'}}>{fmt12(time)}</span>
+                <span style={{fontSize:16,fontWeight:500,color:isActive?'#c9a84c':'#6b7280',fontVariantNumeric:'tabular-nums'}}>{fmt12(time)}</span>
               </div>
-              {iqTime&&<div style={{display:'flex',justifyContent:'space-between',fontSize:10,color:isActive?'#4a5568':'#2d3748',paddingTop:1,paddingBottom:2}}><span>Iqamah</span><span>{fmt12(iqTime)}</span></div>}
+              {iqTime&&<div style={{display:'flex',justifyContent:'space-between',fontSize:14,color:isActive?'#7a8a9a':'#4a5568',paddingTop:2,paddingBottom:3}}><span>Iqamah</span><span style={{fontVariantNumeric:'tabular-nums'}}>{fmt12(iqTime)}</span></div>}
             </div>
           );
         })}
@@ -408,16 +408,16 @@ export default function DisplayPage({ params }: { params: { slug: string } }) {
       {/* Header */}
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 28px',background:'#0d1117',borderBottom:'1px solid #1c2333',position:'relative',zIndex:10}}>
         <div>
-          <div style={{fontSize:15,fontWeight:500,color:'#c9a84c',letterSpacing:'0.06em',fontFamily:"'Cinzel',serif"}}>{data.masjid.name} &nbsp;·&nbsp; {data.masjid.city}</div>
+          <div style={{fontSize:19,fontWeight:500,color:'#c9a84c',letterSpacing:'0.06em',fontFamily:"'Cinzel',serif"}}>{data.masjid.name} &nbsp;·&nbsp; {data.masjid.city}</div>
           <div style={{display:'flex',alignItems:'center',gap:10,marginTop:5}}>
-            <div style={{fontSize:13,color:'#5a6a7a',fontFamily:"'Cormorant Garamond',serif",fontStyle:'italic'}}>{hijri}</div>
+            <div style={{fontSize:19,color:'#5a6a7a',fontFamily:"'Cormorant Garamond',serif",fontStyle:'italic'}}>{hijri}</div>
             {weather&&(
               <>
                 <div style={{width:1,height:12,background:'#1c2333'}}/>
                 <div style={{display:'flex',alignItems:'center',gap:5}}>
-                  <span style={{fontSize:14}}>{weather.icon}</span>
-                  <span style={{fontSize:12,fontWeight:300,color:'#b8cce0',fontFamily:"'Inter',sans-serif"}}>{weather.temp}</span>
-                  <span style={{fontSize:11,color:'#4a5568',fontFamily:"'Inter',sans-serif"}}>{weather.desc}</span>
+                  <span style={{fontSize:19}}>{weather.icon}</span>
+                  <span style={{fontSize:18,fontWeight:300,color:'#b8cce0',fontFamily:"'Inter',sans-serif"}}>{weather.temp}</span>
+                  <span style={{fontSize:16,color:'#4a5568',fontFamily:"'Inter',sans-serif"}}>{weather.desc}</span>
                 </div>
               </>
             )}
@@ -426,7 +426,7 @@ export default function DisplayPage({ params }: { params: { slug: string } }) {
 
         <div style={{textAlign:'right'}}>
           <div style={{fontSize:34,fontWeight:200,letterSpacing:'0.04em',fontVariantNumeric:'tabular-nums',lineHeight:1,fontFamily:"'Inter',sans-serif"}}>{clock}</div>
-          <div style={{fontSize:14,color:'#5a6a7a',marginTop:5,fontFamily:"'Cormorant Garamond',serif",fontStyle:'italic'}}>{dateStr}</div>
+          <div style={{fontSize:20,color:'#5a6a7a',marginTop:5,fontFamily:"'Cormorant Garamond',serif",fontStyle:'italic'}}>{dateStr}</div>
         </div>
       </div>
 
@@ -438,7 +438,7 @@ export default function DisplayPage({ params }: { params: { slug: string } }) {
       )}
 
       {/* Main body */}
-      <div style={{flex:1,display:'grid',gridTemplateColumns:wideMode?'1fr 190px':'1fr 210px',transition:'grid-template-columns 1s ease',minHeight:0,overflow:'hidden'}}>
+      <div style={{flex:1,display:'grid',gridTemplateColumns:wideMode?'1fr 240px':'1fr 260px',transition:'grid-template-columns 1s ease',minHeight:0,overflow:'hidden'}}>
 
         {/* ── QUOTE SLIDE ── */}
         {currentSlide?.type==='quote' && (

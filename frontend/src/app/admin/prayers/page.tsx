@@ -53,10 +53,15 @@ export default function PrayersPage() {
   const handleSave = async () => {
     if (!ptId) return;
     const token = localStorage.getItem('token') || '';
+    // Backend expects HH:MM:SS format for LocalTime
+    const payload: Record<string, string> = {};
+    Object.entries(form).forEach(([k, v]) => {
+      payload[k] = v && v.length === 5 ? v + ':00' : v;
+    });
     await fetch(`/api/admin/prayer-times/${ptId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify(form),
+      body: JSON.stringify(payload),
     });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
