@@ -24,43 +24,65 @@ import java.util.Map;
 @Slf4j
 public class AladhanService {
 
-    private final MasjidRepository      masjidRepository;
+    private final MasjidRepository masjidRepository;
     private final PrayerTimesRepository prayerTimesRepository;
-    private final RestTemplate          restTemplate;
+    private final RestTemplate restTemplate;
+    private final MasjidTimeService masjidTimeService;
 
     @Value("${app.aladhan.base-url}")
     private String baseUrl;
 
-    /**
-     * Runs on every backend startup.
-     * Ensures prayer times are always populated even after a DB wipe or fresh deploy.
-     */
+    /** Ensures every masjid has prayer times for its own local calendar date. */
     @PostConstruct
     public void syncOnStartup() {
-        log.info("Syncing prayer times on startup...");
-        List<Masjid> masjids = masjidRepository.findAll();
-        masjids.forEach(masjid -> {
-            boolean exists = prayerTimesRepository
-                .findByMasjidIdAndPrayerDate(masjid.getId(), LocalDate.now())
-                .isPresent();
-            if (!exists) {
-                log.info("No prayer times found for {} — fetching from Aladhan", masjid.getSlug());
-                syncMasjid(masjid);
-            } else {
-                log.info("Prayer times already exist for {}", masjid.getSlug());
-            }
-        });
+        log.info("Prayer-time startup check beginning");
+        syncMissingLocalDates("startup");
     }
 
-    /** Runs daily at 1 AM to pre-fetch today's times for all masjids */
-    @Scheduled(cron = "0 0 1 * * *")
+    /**
+     * Runs hourly at minute 5. This is intentionally timezone-neutral: each
+     * masjid is checked against its own local date, and the external API is
+     * called only when that date is missing.
+     */
+    @Scheduled(cron = "0 5 * * * *")
     public void syncAllMasjids() {
-        log.info("Daily Aladhan sync running...");
-        masjidRepository.findAll().forEach(this::syncMasjid);
+        syncMissingLocalDates("hourly-scheduler");
+    }
+
+    private void syncMissingLocalDates(String trigger) {
+        List<Masjid> masjids = masjidRepository.findAll();
+        log.info("Prayer-time sync check trigger={} masjidCount={}", trigger, masjids.size());
+
+        for (Masjid masjid : masjids) {
+            LocalDate localDate = masjidTimeService.localDate(masjid);
+            boolean exists = prayerTimesRepository
+                .findByMasjidIdAndPrayerDate(masjid.getId(), localDate)
+                .isPresent();
+
+            log.debug(
+                "Prayer-time sync evaluation trigger={} masjid={} timezone={} localDate={} exists={}",
+                trigger,
+                masjid.getSlug(),
+                masjid.getTimezone(),
+                localDate,
+                exists
+            );
+
+            if (!exists) {
+                log.info(
+                    "Prayer times missing trigger={} masjid={} timezone={} localDate={}; fetching",
+                    trigger,
+                    masjid.getSlug(),
+                    masjid.getTimezone(),
+                    localDate
+                );
+                syncMasjidForDate(masjid, localDate);
+            }
+        }
     }
 
     public PrayerTimes syncMasjid(Masjid masjid) {
-        return syncMasjidForDate(masjid, LocalDate.now());
+        return syncMasjidForDate(masjid, masjidTimeService.localDate(masjid));
     }
 
     @SuppressWarnings("unchecked")
@@ -74,13 +96,28 @@ public class AladhanService {
                 masjid.getCalcMethod()
             );
 
+            log.info(
+                "Calling Aladhan masjid={} timezone={} prayerDate={} latitude={} longitude={} method={}",
+                masjid.getSlug(),
+                masjid.getTimezone(),
+                date,
+                masjid.getLatitude(),
+                masjid.getLongitude(),
+                masjid.getCalcMethod()
+            );
+
             Map<String, Object> response = restTemplate.getForObject(url, Map.class);
             if (response == null || !Integer.valueOf(200).equals(response.get("code"))) {
-                log.warn("Aladhan returned non-200 for masjid {}", masjid.getSlug());
+                log.warn(
+                    "Aladhan returned unsuccessful response masjid={} prayerDate={} response={}",
+                    masjid.getSlug(),
+                    date,
+                    response
+                );
                 return null;
             }
 
-            Map<String, Object> data    = (Map<String, Object>) response.get("data");
+            Map<String, Object> data = (Map<String, Object>) response.get("data");
             Map<String, String> timings = (Map<String, String>) data.get("timings");
 
             PrayerTimes pt = prayerTimesRepository
@@ -98,19 +135,28 @@ public class AladhanService {
             pt.setSource("ALADHAN");
             pt.setCreatedAt(Instant.now());
 
-            // Default iqamah offsets — only set if not already customised
-            if (pt.getFajrIqamah()    == null && pt.getFajr()    != null) pt.setFajrIqamah(pt.getFajr().plusMinutes(20));
-            if (pt.getDhuhrIqamah()   == null && pt.getDhuhr()   != null) pt.setDhuhrIqamah(pt.getDhuhr().plusMinutes(10));
-            if (pt.getAsrIqamah()     == null && pt.getAsr()     != null) pt.setAsrIqamah(pt.getAsr().plusMinutes(10));
+            if (pt.getFajrIqamah() == null && pt.getFajr() != null) pt.setFajrIqamah(pt.getFajr().plusMinutes(20));
+            if (pt.getDhuhrIqamah() == null && pt.getDhuhr() != null) pt.setDhuhrIqamah(pt.getDhuhr().plusMinutes(10));
+            if (pt.getAsrIqamah() == null && pt.getAsr() != null) pt.setAsrIqamah(pt.getAsr().plusMinutes(10));
             if (pt.getMaghribIqamah() == null && pt.getMaghrib() != null) pt.setMaghribIqamah(pt.getMaghrib().plusMinutes(5));
-            if (pt.getIshaIqamah()    == null && pt.getIsha()    != null) pt.setIshaIqamah(pt.getIsha().plusMinutes(15));
+            if (pt.getIshaIqamah() == null && pt.getIsha() != null) pt.setIshaIqamah(pt.getIsha().plusMinutes(15));
 
             PrayerTimes saved = prayerTimesRepository.save(pt);
-            log.info("Prayer times saved for {} on {}", masjid.getSlug(), date);
+            log.info(
+                "Prayer times saved masjid={} timezone={} prayerDate={}",
+                masjid.getSlug(),
+                masjid.getTimezone(),
+                date
+            );
             return saved;
-
-        } catch (Exception e) {
-            log.error("Failed to sync prayer times for {}: {}", masjid.getSlug(), e.getMessage());
+        } catch (Exception ex) {
+            log.error(
+                "Prayer-time sync failed masjid={} timezone={} prayerDate={}",
+                masjid.getSlug(),
+                masjid.getTimezone(),
+                date,
+                ex
+            );
             return null;
         }
     }

@@ -1,5 +1,6 @@
 package com.noordisplay.service;
 
+import com.noordisplay.entity.Masjid;
 import com.noordisplay.entity.ScheduledSlot;
 import com.noordisplay.repository.MasjidRepository;
 import com.noordisplay.repository.ScheduledSlotRepository;
@@ -11,43 +12,37 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class ContentSchedulerService {
 
-    private final MasjidRepository       masjidRepository;
+    private final MasjidRepository masjidRepository;
     private final ScheduledSlotRepository slotRepository;
-    private final SimpMessagingTemplate   messaging;
+    private final SimpMessagingTemplate messaging;
+    private final MasjidTimeService masjidTimeService;
 
-    /**
-     * Runs every 60 seconds.
-     * For each masjid, finds all currently-active slots and broadcasts them
-     * to /topic/schedule/{slug} so connected displays can react immediately.
-     */
     @Scheduled(fixedRate = 60_000)
     public void tick() {
-        LocalTime now   = LocalTime.now();
-        LocalDate today = LocalDate.now();
-        int dayOfWeek   = today.getDayOfWeek().getValue() % 7; // 0=Sun … 6=Sat
-
         masjidRepository.findAll().forEach(masjid -> {
-            List<ScheduledSlot> active = slotRepository
-                .findActiveNow(masjid.getId(), now, today)
-                .stream()
-                .filter(s -> s.getRepeatDays().contains(String.valueOf(dayOfWeek)))
-                .toList();
+            LocalTime now = masjidTimeService.localTime(masjid);
+            LocalDate today = masjidTimeService.localDate(masjid);
+            int dayOfWeek = today.getDayOfWeek().getValue() % 7;
 
-            List<Map<String, Object>> payload = active.stream().map(s -> {
-                Map<String, Object> m = new HashMap<>();
-                m.put("id",       s.getId().toString());
-                m.put("name",     s.getName());
-                m.put("type",     s.getSlotType());
-                m.put("message",  s.getMessage());
-                m.put("imageUrl", s.getImageUrl());
-                return m;
+            List<ScheduledSlot> active = findActive(masjid, now, today, dayOfWeek);
+            List<Map<String, Object>> payload = active.stream().map(slot -> {
+                Map<String, Object> item = new HashMap<>();
+                item.put("id", slot.getId().toString());
+                item.put("name", slot.getName());
+                item.put("type", slot.getSlotType());
+                item.put("message", slot.getMessage());
+                item.put("imageUrl", slot.getImageUrl());
+                return item;
             }).toList();
 
             messaging.convertAndSend(
@@ -57,14 +52,25 @@ public class ContentSchedulerService {
         });
     }
 
-    /** Called by the REST API to get current active slots for a masjid. */
     public List<ScheduledSlot> getActiveNow(UUID masjidId) {
-        LocalTime now   = LocalTime.now();
-        LocalDate today = LocalDate.now();
-        int dayOfWeek   = today.getDayOfWeek().getValue() % 7;
-        return slotRepository.findActiveNow(masjidId, now, today)
+        Masjid masjid = masjidRepository.findById(masjidId)
+            .orElseThrow(() -> new RuntimeException("Masjid not found: " + masjidId));
+        LocalTime now = masjidTimeService.localTime(masjid);
+        LocalDate today = masjidTimeService.localDate(masjid);
+        int dayOfWeek = today.getDayOfWeek().getValue() % 7;
+        return findActive(masjid, now, today, dayOfWeek);
+    }
+
+    private List<ScheduledSlot> findActive(
+        Masjid masjid,
+        LocalTime now,
+        LocalDate today,
+        int dayOfWeek
+    ) {
+        return slotRepository.findActiveNow(masjid.getId(), now, today)
             .stream()
-            .filter(s -> s.getRepeatDays().contains(String.valueOf(dayOfWeek)))
+            .filter(slot -> slot.getRepeatDays() != null)
+            .filter(slot -> slot.getRepeatDays().contains(String.valueOf(dayOfWeek)))
             .toList();
     }
 }
