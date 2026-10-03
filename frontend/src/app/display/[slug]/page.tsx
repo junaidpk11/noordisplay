@@ -350,34 +350,34 @@ export default function DisplayPage({ params }: { params: { slug: string } }) {
   // Shared right panel
   const PrayerPanel = () => (
     <div style={{background:'#080c12',display:'flex',flexDirection:'column'}}>
-      <div style={{fontSize:9,color:'#4a5568',letterSpacing:'0.1em',textTransform:'uppercase',padding:'14px 16px 8px',borderBottom:'1px solid #1c2333',fontFamily:"'Inter',sans-serif"}}>
+      <div style={{fontSize:13,color:'#4a5568',letterSpacing:'0.1em',textTransform:'uppercase',padding:'20px 24px 14px',borderBottom:'1px solid #1c2333',fontFamily:"'Inter',sans-serif"}}>
         Prayer times
       </div>
-      <div style={{flex:1,padding:'6px 0'}}>
+      <div style={{flex:1,padding:'10px 0'}}>
         {PRAYERS.map((p,i)=>{
           const time = pt?.[p.key as keyof typeof pt] as string;
           const iqTime = p.iqKey ? pt?.[p.iqKey as keyof typeof pt] as string : null;
           const isActive=i===active, isNext=i===next;
           return (
-            <div key={p.key} style={{padding:'5px 16px',paddingLeft:isActive?14:16,background:isActive?'#111827':'transparent',borderLeft:isActive?'2px solid #c9a84c':'2px solid transparent',transition:'background 0.5s'}}>
+            <div key={p.key} style={{padding:'10px 24px',paddingLeft:isActive?22:24,background:isActive?'#111827':'transparent',borderLeft:isActive?'2px solid #c9a84c':'2px solid transparent',transition:'background 0.5s'}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                <span style={{fontSize:16,fontWeight:500,color:isActive?'#f0ede6':'#6b7280'}}>
+                <span style={{fontSize:24,fontWeight:500,color:isActive?'#f0ede6':'#6b7280'}}>
                   {p.label}
-                  {isNext&&<span style={{fontSize:11,background:'#c9a84c18',color:'#c9a84c',padding:'2px 6px',borderRadius:3,marginLeft:5,fontWeight:500}}>next</span>}
+                  {isNext&&<span style={{fontSize:15,background:'#c9a84c18',color:'#c9a84c',padding:'3px 8px',borderRadius:3,marginLeft:8,fontWeight:500}}>next</span>}
                 </span>
-                <span style={{fontSize:16,fontWeight:500,color:isActive?'#c9a84c':'#6b7280',fontVariantNumeric:'tabular-nums'}}>{fmt12(time)}</span>
+                <span style={{fontSize:24,fontWeight:500,color:isActive?'#c9a84c':'#6b7280',fontVariantNumeric:'tabular-nums'}}>{fmt12(time)}</span>
               </div>
-              {iqTime&&<div style={{display:'flex',justifyContent:'space-between',fontSize:14,color:isActive?'#7a8a9a':'#4a5568',paddingTop:2,paddingBottom:3}}><span>Iqamah</span><span style={{fontVariantNumeric:'tabular-nums'}}>{fmt12(iqTime)}</span></div>}
+              {iqTime&&<div style={{display:'flex',justifyContent:'space-between',fontSize:19,color:isActive?'#7a8a9a':'#4a5568',paddingTop:4,paddingBottom:5}}><span>Iqamah</span><span style={{fontVariantNumeric:'tabular-nums'}}>{fmt12(iqTime)}</span></div>}
             </div>
           );
         })}
       </div>
       {/* Next prayer mini strip inside panel */}
-      <div style={{borderTop:'1px solid #1c2333',padding:'10px 16px',background:'#060a0f'}}>
+      <div style={{borderTop:'1px solid #1c2333',padding:'15px 24px',background:'#060a0f'}}>
         <div style={{fontSize:9,color:'#4a5568',letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:3}}>Next</div>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline'}}>
-          <span style={{fontSize:13,fontFamily:"'Cinzel',serif",color:'#f0ede6',letterSpacing:'0.04em'}}>{nextPrayer.label}</span>
-          <span style={{fontSize:16,fontWeight:200,color:'#c9a84c',fontVariantNumeric:'tabular-nums'}}>{countdown}</span>
+          <span style={{fontSize:18,fontFamily:"'Cinzel',serif",color:'#f0ede6',letterSpacing:'0.04em'}}>{nextPrayer.label}</span>
+          <span style={{fontSize:24,fontWeight:200,color:'#c9a84c',fontVariantNumeric:'tabular-nums'}}>{countdown}</span>
         </div>
       </div>
     </div>
@@ -438,7 +438,7 @@ export default function DisplayPage({ params }: { params: { slug: string } }) {
       )}
 
       {/* Main body */}
-      <div style={{flex:1,display:'grid',gridTemplateColumns:wideMode?'1fr 240px':'1fr 260px',transition:'grid-template-columns 1s ease',minHeight:0,overflow:'hidden'}}>
+      <div style={{flex:1,display:'grid',gridTemplateColumns:wideMode?'1fr 400px':'1fr 420px',transition:'grid-template-columns 1s ease',minHeight:0,overflow:'hidden'}}>
 
         {/* ── QUOTE SLIDE ── */}
         {currentSlide?.type==='quote' && (
