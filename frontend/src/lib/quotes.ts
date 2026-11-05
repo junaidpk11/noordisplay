@@ -5,7 +5,7 @@
 const IMG = {
   mosqueAbuDhabi:  '/images/quotes/mosque-abu-dhabi.jpg',   // Sheikh Zayed — white domes, minaret
   mosqueMisty:     '/images/quotes/mosque-misty.jpg',       // Sheikh Zayed — misty dawn, two minarets
-  islamicTilework: '/images/quotes/islamic-tilework.jpg',   // Persian tilework dome with calligraphy
+  islamicTilework: '/images/quotes/islamic-tilework.jpg?v=964bc01', // Masjid al-Haram; versioned to refresh TV/browser caches
   goldenSky:       '/images/quotes/golden-sky-birds.jpg',   // Golden clouds, birds in flight, trees
   mountainPines:   '/images/quotes/mountain-pines.jpg',     // Snow-capped mountains, pine forest
   grassBokeh:      '/images/quotes/grass-bokeh.jpg',        // Soft grass close-up, gentle bokeh
