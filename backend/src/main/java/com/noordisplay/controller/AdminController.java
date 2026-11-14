@@ -131,6 +131,7 @@ public class AdminController {
             pt.setMaghribIqamah(payload.getMaghribIqamah());
             pt.setIshaIqamah(payload.getIshaIqamah());
             pt.setJumuah(payload.getJumuah());
+            pt.setIqamahManual(true);
             pt.setSource("MANUAL");
             return ResponseEntity.ok(prayerTimesRepository.save(pt));
         }).orElse(ResponseEntity.notFound().build());

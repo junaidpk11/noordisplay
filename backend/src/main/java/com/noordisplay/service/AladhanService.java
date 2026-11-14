@@ -18,6 +18,7 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -55,9 +56,9 @@ public class AladhanService {
 
         for (Masjid masjid : masjids) {
             LocalDate localDate = masjidTimeService.localDate(masjid);
-            boolean exists = prayerTimesRepository
-                .findByMasjidIdAndPrayerDate(masjid.getId(), localDate)
-                .isPresent();
+            Optional<PrayerTimes> existing = prayerTimesRepository
+                .findByMasjidIdAndPrayerDate(masjid.getId(), localDate);
+            boolean exists = existing.isPresent();
 
             log.debug(
                 "Prayer-time sync evaluation trigger={} masjid={} timezone={} localDate={} exists={}",
@@ -77,6 +78,8 @@ public class AladhanService {
                     localDate
                 );
                 syncMasjidForDate(masjid, localDate);
+            } else {
+                carryForwardManualIqamah(masjid, existing.get());
             }
         }
     }
@@ -120,9 +123,9 @@ public class AladhanService {
             Map<String, Object> data = (Map<String, Object>) response.get("data");
             Map<String, String> timings = (Map<String, String>) data.get("timings");
 
-            PrayerTimes pt = prayerTimesRepository
-                .findByMasjidIdAndPrayerDate(masjid.getId(), date)
-                .orElseGet(PrayerTimes::new);
+            Optional<PrayerTimes> existing = prayerTimesRepository
+                .findByMasjidIdAndPrayerDate(masjid.getId(), date);
+            PrayerTimes pt = existing.orElseGet(PrayerTimes::new);
 
             pt.setMasjid(masjid);
             pt.setPrayerDate(date);
@@ -134,6 +137,12 @@ public class AladhanService {
             pt.setIsha(parseTime(timings.get("Isha")));
             pt.setSource("ALADHAN");
             pt.setCreatedAt(Instant.now());
+
+            if (existing.isEmpty()) {
+                prayerTimesRepository
+                    .findTopByMasjidIdAndIqamahManualTrueOrderByPrayerDateDesc(masjid.getId())
+                    .ifPresent(manual -> copyManualIqamah(manual, pt));
+            }
 
             if (pt.getFajrIqamah() == null && pt.getFajr() != null) pt.setFajrIqamah(pt.getFajr().plusMinutes(20));
             if (pt.getDhuhrIqamah() == null && pt.getDhuhr() != null) pt.setDhuhrIqamah(pt.getDhuhr().plusMinutes(10));
@@ -165,5 +174,33 @@ public class AladhanService {
         if (raw == null) return null;
         String clean = raw.replaceAll("\\s*\\(.*\\)", "").trim();
         return LocalTime.parse(clean, DateTimeFormatter.ofPattern("HH:mm"));
+    }
+
+    private void carryForwardManualIqamah(Masjid masjid, PrayerTimes today) {
+        if (today.isIqamahManual()) return;
+
+        prayerTimesRepository
+            .findTopByMasjidIdAndIqamahManualTrueOrderByPrayerDateDesc(masjid.getId())
+            .filter(manual -> !manual.getId().equals(today.getId()))
+            .ifPresent(manual -> {
+                copyManualIqamah(manual, today);
+                prayerTimesRepository.save(today);
+                log.info(
+                    "Carried forward manual Iqamah settings masjid={} prayerDate={} sourceDate={}",
+                    masjid.getSlug(),
+                    today.getPrayerDate(),
+                    manual.getPrayerDate()
+                );
+            });
+    }
+
+    static void copyManualIqamah(PrayerTimes source, PrayerTimes target) {
+        target.setFajrIqamah(source.getFajrIqamah());
+        target.setDhuhrIqamah(source.getDhuhrIqamah());
+        target.setAsrIqamah(source.getAsrIqamah());
+        target.setMaghribIqamah(source.getMaghribIqamah());
+        target.setIshaIqamah(source.getIshaIqamah());
+        target.setJumuah(source.getJumuah());
+        target.setIqamahManual(true);
     }
 }

@@ -8,4 +8,5 @@ import java.util.UUID;
 
 public interface PrayerTimesRepository extends JpaRepository<PrayerTimes, UUID> {
     Optional<PrayerTimes> findByMasjidIdAndPrayerDate(UUID masjidId, LocalDate date);
+    Optional<PrayerTimes> findTopByMasjidIdAndIqamahManualTrueOrderByPrayerDateDesc(UUID masjidId);
 }

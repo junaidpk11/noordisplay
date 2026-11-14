@@ -41,6 +41,9 @@ public class PrayerTimes {
     private LocalTime jumuah;
 
     @Column(nullable = false)
+    private boolean iqamahManual;
+
+    @Column(nullable = false)
     private String source;
 
     private Instant createdAt;
