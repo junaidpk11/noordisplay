@@ -81,14 +81,7 @@ function isExplicitlyNonFinal(data: any): boolean {
 function getWebSocketUrl(): string {
   const configured = process.env.NEXT_PUBLIC_WS_URL;
   if (configured) return configured;
-
-  if (typeof window !== 'undefined') {
-    const protocol = window.location.protocol === 'https:' ? 'https' : 'http';
-    return `${protocol}://${window.location.hostname}:8080/ws`;
-  }
-
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-  return apiUrl + '/ws';
+  return getWsUrl();
 }
 
 export default function KhutbahDisplay({ params }: { params: { slug: string } }) {
